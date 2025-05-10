@@ -13,6 +13,8 @@ from app.yoloutils import (
 import uuid
 import shutil
 import os
+from fastapi import Query
+import sqlite3
 
 app = FastAPI()
 
@@ -26,6 +28,88 @@ def startup_event():
 @app.get("/", response_class=HTMLResponse)
 def homepage(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/stats/{location}")
+def get_stats(location: str):
+    # Mapping lokasi ke bagian nama folder
+    location_map = {
+        "banda_aceh": ["simpang_dharma3", "simpang_dharma4"],
+        "medan": ["katamso_aniidrus", "katamso_masjidraya"],
+        "jakarta": ["gelora1", "gelora2"],
+        "pematang_siantar": ["simpang_lr20"]
+    }
+
+    folders = location_map.get(location.lower())
+    if not folders:
+        return {"labels": [], "helm": [], "no_helm": []}
+
+    placeholders = ",".join(["?"] * len(folders))  # e.g., ?,?,?
+    query = f"""
+        SELECT DATE(date), class, COUNT(*) 
+        FROM detections
+        WHERE {" OR ".join(["photo LIKE ?"] * len(folders))}
+        GROUP BY DATE(date), class
+        ORDER BY DATE(date)
+    """
+    like_values = [f"%{f}%" for f in folders]
+
+    conn = sqlite3.connect("app/data/detections.db")
+    c = conn.cursor()
+    c.execute(query, like_values)
+    rows = c.fetchall()
+    conn.close()
+
+    # Proses data
+    date_counts = {}
+    for date, cls, count in rows:
+        if date not in date_counts:
+            date_counts[date] = {"Helm": 0, "Non-Helm": 0}
+        if cls.lower() == "helm":
+            date_counts[date]["Helm"] += count
+        else:
+            date_counts[date]["Non-Helm"] += count
+
+    labels = list(date_counts.keys())
+    helm_data = [date_counts[d]["Helm"] for d in labels]
+    no_helm_data = [date_counts[d]["Non-Helm"] for d in labels]
+
+    return {"labels": labels, "helm": helm_data, "no_helm": no_helm_data}
+
+@app.get("/summary/{location}")
+def get_summary(location: str):
+    location_map = {
+        "banda_aceh": ["simpang_dharma3", "simpang_dharma4"],
+        "medan": ["katamso_aniidrus", "katamso_masjidraya"],
+        "jakarta": ["gelora1", "gelora2"],
+        "pematang_siantar": ["simpang_lr20"]
+    }
+
+    folders = location_map.get(location.lower())
+    if not folders:
+        return {"helm": 0, "non_helm": 0}
+
+    placeholders = ",".join(["?"] * len(folders))
+    query = f"""
+        SELECT class, COUNT(*) 
+        FROM detections
+        WHERE {" OR ".join(["photo LIKE ?"] * len(folders))}
+        GROUP BY class
+    """
+    like_values = [f"%{f}%" for f in folders]
+
+    conn = sqlite3.connect("app/data/detections.db")
+    c = conn.cursor()
+    c.execute(query, like_values)
+    rows = c.fetchall()
+    conn.close()
+
+    result = {"helm": 0, "non_helm": 0}
+    for cls, count in rows:
+        if cls.lower() == "helm":
+            result["helm"] += count
+        else:
+            result["non_helm"] += count
+    return result
 
 @app.get("/cctv/{camera_id}", response_class=HTMLResponse)
 def camera_view(request: Request, camera_id: str):

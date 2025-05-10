@@ -1,8 +1,8 @@
-# yoloutils.py
 import cv2
 import time
 import os
 import json
+import sqlite3
 import numpy as np
 import imageio.v2 as imageio
 from datetime import datetime
@@ -18,13 +18,28 @@ camera_configs = {
     "katamso_masjidraya": "https://atcsdishub.pemkomedan.go.id/camera/KATAMSOMASJIDRAYA.m3u8",
     "gelora1": "https://cctv.balitower.co.id/Gelora-017-700470_3/tracks-v1/index.fmp4.m3u8",
     "gelora2": "https://cctv.balitower.co.id/Gelora-017-700470_4/tracks-v1/index.fmp4.m3u8",
-    "bendungan_hilir3": "https://cctv.balitower.co.id/Bendungan-Hilir-003-700014_2/tracks-v1/index.fmp4.m3u8"
+    "simpang_lr20": "https://stream.denava.id/stream/a64fdc17-7a69-43b1-a26f-232c3df82641/channel/0/hls/live/index.m3u8"
 }
 
 camera_streams = {}
 detections_per_camera = {}
 DETECTIONS_FILE = "app/static/detections.json"
 os.makedirs("app/static/detected", exist_ok=True)
+
+DB_PATH = "app/data/detections.db"
+
+def insert_detection(frame, photo, label, time_str, confidence):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO detections (frame, photo, class, date, confidence)
+            VALUES (?, ?, ?, ?, ?)
+        """, (frame, photo, label, time_str, confidence))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("DB Error:", e)
 
 def save_detections_to_file():
     with open(DETECTIONS_FILE, "w") as f:
@@ -57,10 +72,12 @@ def is_duplicate(bbox):
     return False
 
 def save_detection(label, conf, crop_img, bbox, camera_id, frame_count):
-    folder = "app/static/detected"
-    filename = f"{camera_id}_{int(time.time()*1000)}.jpg"
+    folder = f"app/static/detected/{camera_id}"
+    os.makedirs(folder, exist_ok=True)
+
+    filename = f"{int(time.time()*1000)}.jpg"
     abs_path = os.path.join(folder, filename)
-    rel_path = f"detected/{filename}"
+    rel_path = f"detected/{camera_id}/{filename}"
 
     saved = cv2.imwrite(abs_path, crop_img)
     if not saved:
@@ -69,16 +86,19 @@ def save_detection(label, conf, crop_img, bbox, camera_id, frame_count):
     if camera_id not in detections_per_camera:
         detections_per_camera[camera_id] = []
 
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     detections_per_camera[camera_id].append({
         "frame": frame_count,
         "class": label,
         "confidence": round(conf, 2),
-        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "time": timestamp,
         "img": rel_path
     })
 
     detections_per_camera[camera_id] = detections_per_camera[camera_id][-100:]
     save_detections_to_file()
+    insert_detection(frame_count, rel_path, label, timestamp, round(conf, 2))
 
 def stream_reader(camera_id, url):
     cap = cv2.VideoCapture(url)

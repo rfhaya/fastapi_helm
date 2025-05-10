@@ -13,7 +13,8 @@
 	<link href="{{ request.url_for('static', path='assets/plugins/simplebar/css/simplebar.css') }}" rel="stylesheet" />
 	<link href="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css') }}"
 		rel="stylesheet" />
-	<link href="{{ request.url_for('static', path='assets/plugins/metismenu/css/metisMenu.min.css') }}" rel="stylesheet" />
+	<link href="{{ request.url_for('static', path='assets/plugins/metismenu/css/metisMenu.min.css') }}"
+		rel="stylesheet" />
 	<!-- loader-->
 	<link href="{{ request.url_for('static', path='assets/css/pace.min.css') }}" rel="stylesheet" />
 	<script src="{{ request.url_for('static', path='assets/js/pace.min.js') }}"></script>
@@ -39,7 +40,8 @@
 		<div class="sidebar-wrapper" data-simplebar="true">
 			<div class="sidebar-header">
 				<div>
-					<img src="{{ request.url_for('static', path='assets/images/icon.png') }}" class="logo-icon" alt="logo icon">
+					<img src="{{ request.url_for('static', path='assets/images/icon.png') }}" class="logo-icon"
+						alt="logo icon">
 				</div>
 				<div>
 					<h4 class="logo-text">VizoHelm</h4>
@@ -67,10 +69,12 @@
 					</a>
 					<ul>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='simpang_dharma3') }}"><i class="bx bx-right-arrow-alt"></i>Simpang Dharma 3</a>
+							<a href="{{ request.url_for('camera_view', camera_id='simpang_dharma3') }}"><i
+									class="bx bx-right-arrow-alt"></i>Simpang Dharma 3</a>
 						</li>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='simpang_dharma4') }}"><i class="bx bx-right-arrow-alt"></i>Simpang Dharma 4</a>
+							<a href="{{ request.url_for('camera_view', camera_id='simpang_dharma4') }}"><i
+									class="bx bx-right-arrow-alt"></i>Simpang Dharma 4</a>
 						</li>
 					</ul>
 				</li>
@@ -84,10 +88,12 @@
 					</a>
 					<ul>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='katamso_aniidrus') }}"><i class="bx bx-right-arrow-alt"></i>Katamso Ani Idrus</a>
+							<a href="{{ request.url_for('camera_view', camera_id='katamso_aniidrus') }}"><i
+									class="bx bx-right-arrow-alt"></i>Katamso Ani Idrus</a>
 						</li>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='katamso_masjidraya') }}"><i class="bx bx-right-arrow-alt"></i>Katamso Masjid
+							<a href="{{ request.url_for('camera_view', camera_id='katamso_masjidraya') }}"><i
+									class="bx bx-right-arrow-alt"></i>Katamso Masjid
 								Raya</a>
 						</li>
 					</ul>
@@ -102,13 +108,27 @@
 					</a>
 					<ul>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='gelora1') }}"><i class="bx bx-right-arrow-alt"></i>Gelora</a>
+							<a href="{{ request.url_for('camera_view', camera_id='gelora1') }}"><i
+									class="bx bx-right-arrow-alt"></i>Gelora</a>
 						</li>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='gelora2') }}"><i class="bx bx-right-arrow-alt"></i>Gelora 2</a>
+							<a href="{{ request.url_for('camera_view', camera_id='gelora2') }}"><i
+									class="bx bx-right-arrow-alt"></i>Gelora 2</a>
 						</li>
+					</ul>
+				</li>
+
+				<li>
+					<a href="javascript:;" class="has-arrow">
+						<div class="parent-icon">
+							<i class='bx bx-webcam'></i>
+						</div>
+						<div class="menu-title">Pematang Siantar</div>
+					</a>
+					<ul>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='bendungan_hilir3') }}"><i class="bx bx-right-arrow-alt"></i>Bendungan hilir 3</a>
+							<a href="{{ request.url_for('camera_view', camera_id='simpang_lr20') }}"><i
+									class="bx bx-right-arrow-alt"></i>Sp Lorong 20</a>
 						</li>
 					</ul>
 				</li>
@@ -190,8 +210,10 @@
 						<div class="card radius-10">
 							<div class="card-body">
 								<div class="d-flex align-items-center">
-									<div>
+									<div class="mb-4">
 										<h6 class="mb-0">Data Overview</h6>
+										<small class="text-muted" id="current-location">(Banda Aceh)</small>
+
 									</div>
 									<div class="dropdown ms-auto">
 										<a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
@@ -199,40 +221,19 @@
 												class='bx bx-dots-horizontal-rounded font-22 text-option'></i>
 										</a>
 										<ul class="dropdown-menu">
-											<li><a class="dropdown-item" href="javascript:;">Banda Aceh</a>
-											</li>
-											<li><a class="dropdown-item" href="javascript:;">Medan</a>
-											</li>
-											<li><a class="dropdown-item" href="javascript:;">Jakarta</a>
-											</li>
+											<li><a class="dropdown-item" href="javascript:;"
+													data-location="banda_aceh">Banda Aceh</a></li>
+											<li><a class="dropdown-item" href="javascript:;"
+													data-location="medan">Medan</a></li>
+											<li><a class="dropdown-item" href="javascript:;"
+													data-location="jakarta">Jakarta</a></li>
+											<li><a class="dropdown-item" href="javascript:;"
+													data-location="pematang_siantar">Pematang Siantar</a></li>
 										</ul>
 									</div>
 								</div>
-								<div class="d-flex align-items-center ms-auto font-13 gap-2 my-3">
-									<span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1"
-											style="color: #14abef"></i>Helm</span>
-									<span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1"
-											style="color: #ffc107"></i>Non-Helm</span>
-								</div>
 								<div class="chart-container-1">
-									<canvas id="chart1"></canvas>
-								</div>
-							</div>
-							<div
-								class="row row-cols-3 row-cols-md-2 row-cols-xl-2 g-0 row-group text-center border-top">
-								<div class="col">
-									<div class="p-3">
-										<h5 class="mb-0">24.15M</h5>
-										<small class="mb-0">Overall Helm <span> <i
-													class="bx bx-up-arrow-alt align-middle"></i> 2.43%</span></small>
-									</div>
-								</div>
-								<div class="col">
-									<div class="p-3">
-										<h5 class="mb-0">24.15M</h5>
-										<small class="mb-0">Overall Non-Helm <span> <i
-													class="bx bx-up-arrow-alt align-middle"></i> 12.65%</span></small>
-									</div>
+									<canvas id="chart_per_day"></canvas>
 								</div>
 							</div>
 						</div>
@@ -244,6 +245,7 @@
 								<div class="d-flex align-items-center">
 									<div>
 										<h6 class="mb-0">Data Overview</h6>
+										<small class="text-muted" id="current-location-pie">(Banda Aceh)</small>
 									</div>
 									<div class="dropdown ms-auto">
 										<a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
@@ -251,29 +253,22 @@
 												class='bx bx-dots-horizontal-rounded font-22 text-option'></i>
 										</a>
 										<ul class="dropdown-menu">
-											<li><a class="dropdown-item" href="javascript:;">Banda Aceh</a>
-											</li>
-											<li><a class="dropdown-item" href="javascript:;">Medan</a>
-											</li>
-											<li><a class="dropdown-item" href="javascript:;">Jakarta</a>
-											</li>
+											<li><a class="dropdown-item" href="javascript:;"
+													data-location="banda_aceh">Banda Aceh</a></li>
+											<li><a class="dropdown-item" href="javascript:;"
+													data-location="medan">Medan</a></li>
+											<li><a class="dropdown-item" href="javascript:;"
+													data-location="jakarta">Jakarta</a></li>
+											<li><a class="dropdown-item" href="javascript:;"
+													data-location="pematang_siantar">Pematang Siantar</a></li>
 										</ul>
 									</div>
 								</div>
-								<div class="chart-container-2 mt-4">
-									<canvas id="chart2"></canvas>
+								<div class="chart-container-2 mt-4" style="height: 300px;">
+									<canvas id="chart_pie"></canvas>
 								</div>
+
 							</div>
-							<ul class="list-group list-group-flush">
-								<li
-									class="list-group-item d-flex bg-transparent justify-content-between align-items-center">
-									Helm <span class="badge bg-success rounded-pill">25</span>
-								</li>
-								<li
-									class="list-group-item d-flex bg-transparent justify-content-between align-items-center">
-									Non-Helm <span class="badge bg-danger rounded-pill">10</span>
-								</li>
-							</ul>
 						</div>
 					</div>
 				</div><!--end row-->
@@ -299,8 +294,10 @@
 	<script src="{{ request.url_for('static', path='assets/js/jquery.min.js') }}"></script>
 	<script src="{{ request.url_for('static', path='assets/plugins/simplebar/js/simplebar.min.js') }}"></script>
 	<script src="{{ request.url_for('static', path='assets/plugins/metismenu/js/metisMenu.min.js') }}"></script>
-	<script src="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js') }}"></script>
-	<script src="{{ request.url_for('static', path='assets/plugins/vectormap/jquery-jvectormap-2.0.2.min.js') }}"></script>
+	<script
+		src="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js') }}"></script>
+	<script
+		src="{{ request.url_for('static', path='assets/plugins/vectormap/jquery-jvectormap-2.0.2.min.js') }}"></script>
 	<script
 		src="{{ request.url_for('static', path='assets/plugins/vectormap/jquery-jvectormap-world-mill-en.js') }}"></script>
 	<script src="{{ request.url_for('static', path='assets/plugins/chartjs/js/Chart.min.js') }}"></script>
@@ -314,6 +311,175 @@
 			$('#menu').metisMenu(); // aktifkan metisMenu
 		});
 	</script>
+
+	<script>
+		let chartPerDay;  // Simpan instance Chart.js global
+
+		function updateChart(location) {
+			fetch("/stats/" + location)
+				.then(response => response.json())
+				.then(data => {
+					const ctx = document.getElementById("chart_per_day").getContext('2d');
+
+					const gradient1 = ctx.createLinearGradient(0, 0, 0, 300);
+					gradient1.addColorStop(0, '#6078ea');
+					gradient1.addColorStop(1, '#17c5ea');
+
+					const gradient2 = ctx.createLinearGradient(0, 0, 0, 300);
+					gradient2.addColorStop(0, '#ff8359');
+					gradient2.addColorStop(1, '#ffdf40');
+
+					// Hapus chart sebelumnya jika ada
+					if (chartPerDay) {
+						chartPerDay.destroy();
+					}
+
+					chartPerDay = new Chart(ctx, {
+						type: 'bar',
+						data: {
+							labels: data.labels,
+							datasets: [
+								{
+									label: 'Helm',
+									data: data.helm,
+									backgroundColor: gradient1,
+									borderWidth: 1
+								},
+								{
+									label: 'Non-Helm',
+									data: data.no_helm,
+									backgroundColor: gradient2,
+									borderWidth: 1,
+								}
+							]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							plugins: {
+								legend: {
+									position: 'top'
+								},
+								tooltip: {
+									mode: 'index',
+									intersect: false
+								}
+							},
+							scales: {
+								x: {
+									title: {
+										display: true,
+										text: 'Tanggal'
+									}
+								},
+								y: {
+									title: {
+										display: true,
+										text: 'Jumlah Deteksi'
+									},
+									beginAtZero: true
+								}
+							}
+						}
+					});
+				});
+		}
+
+
+		function updateLocationText(location) {
+			const labelMap = {
+				"banda_aceh": "Banda Aceh",
+				"medan": "Medan",
+				"jakarta": "Jakarta",
+				"pematang_siantar": "Pematang Siantar"
+			};
+			const displayText = `(${labelMap[location] || location})`;
+
+			document.getElementById("current-location").innerText = displayText;
+			document.getElementById("current-location-pie").innerText = displayText;
+		}
+
+		// Panggil default saat load awal
+		document.addEventListener("DOMContentLoaded", function () {
+			updateChart("banda_aceh");
+
+			// Tambah event listener untuk semua item dropdown
+			document.querySelectorAll(".dropdown-item[data-location]").forEach(item => {
+				item.addEventListener("click", function () {
+					const selectedLocation = this.getAttribute("data-location");
+					updateChart(selectedLocation);
+					updateLocationText(selectedLocation);  // tambahkan ini
+
+					// Update text daerah
+					const labelMap = {
+						"banda": "Banda Aceh",
+						"medan": "Medan",
+						"jakarta": "Jakarta",
+						"pematang_siantar": "Pematang Siantar"
+					};
+					document.getElementById("current-location").innerText = `(${labelMap[selectedLocation] || selectedLocation})`;
+				});
+			});
+
+		});
+	</script>
+
+	<script>
+		let chartPie;
+
+		function updatePie(location) {
+			fetch("/summary/" + location)
+				.then(res => res.json())
+				.then(data => {
+					const ctx = document.getElementById("chart_pie").getContext('2d');
+
+					if (chartPie) chartPie.destroy();
+
+					chartPie = new Chart(ctx, {
+						type: 'doughnut',
+						data: {
+							labels: ['Helm', 'Non-Helm'],
+							datasets: [{
+								data: [data.helm, data.non_helm],
+								backgroundColor: ['#14abef', '#ffc107'],
+								hoverOffset: 4
+							}]
+						},
+						options: {
+							maintainAspectRatio: false,  // Tambahkan ini
+							responsive: true,
+							plugins: {
+								legend: {
+									position: 'bottom'
+								},
+								title: {
+									display: true,
+									text: 'Rasio Helm vs Non-Helm'
+								},
+								padding: {
+									top: 10,
+									bottom: 20   // kasih jarak ke pie chart
+								}
+							}
+						}
+					});
+				});
+		}
+
+		// Update pie juga saat lokasi berubah
+		document.addEventListener("DOMContentLoaded", function () {
+			updatePie("banda_aceh");
+
+			document.querySelectorAll(".dropdown-item[data-location]").forEach(item => {
+				item.addEventListener("click", function () {
+					const selectedLocation = this.getAttribute("data-location");
+					updatePie(selectedLocation);
+					updateLocationText(selectedLocation);  // tambahkan ini
+				});
+			});
+		});
+	</script>
+
 
 </body>
 

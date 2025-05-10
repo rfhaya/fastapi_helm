@@ -130,7 +130,7 @@ $(function() {
 		},
 		colors: ["#f41127"],
 		xaxis: {
-			categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+			categories: ["Janu", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 		},
 		fill: {
 			opacity: 1

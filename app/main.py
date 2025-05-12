@@ -1,392 +1,270 @@
-# main.py
-
-from fastapi import FastAPI, Request, UploadFile, File, Form, Query
-from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-
-from app.yoloutils import (
-    generate_live_frames, detections_per_camera,
-    camera_configs, initialize_streams,
-    save_uploaded_video_and_process, model
-)
-
+# === Imports ===
 import os
-import uuid
-import shutil
-import io
-import base64
-import sqlite3
-from threading import Thread
-from PIL import Image
-import numpy as np
 import cv2
+import json
+import time
+import torch
+import sqlite3
+import imageio.v2 as imageio
+import numpy as np
+from datetime import datetime
+from threading import Thread, Lock
+from ultralytics import YOLO
+import pytz
 
-# === Setup ===
-app = FastAPI()
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+tz = pytz.timezone('Asia/Jakarta')
 
-# === Startup ===
-@app.on_event("startup")
-def startup_event():
-    initialize_streams()
+# === Device Check ===
+device_type = "cuda" if torch.cuda.is_available() else "cpu"
+print("Torch version:", torch.__version__)
+print("CUDA available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("CUDA device name:", torch.cuda.get_device_name(0))
+print(f"🚀 YOLOv8 model loaded on: {device_type.upper()}")
 
-# === Page Routes ===
-@app.get("/", response_class=HTMLResponse)
-def homepage(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+# === Load YOLO Model ===
+model = YOLO("app/data/model/best.pt")
 
-@app.get("/upload_image", response_class=HTMLResponse)
-def upload_image_form(request: Request):
-    return templates.TemplateResponse("input_image.html", {"request": request})
+# === Paths & Global Variables ===
+DETECTIONS_FILE = "app/static/detections.json"
+DB_PATH = "app/data/detections.db"
+os.makedirs("app/static/detected", exist_ok=True)
 
-@app.get("/upload_video", response_class=HTMLResponse)
-def upload_video_form(request: Request):
-    return templates.TemplateResponse("input_record.html", {"request": request})
+camera_configs = {
+    "simpang_dharma3": "https://cctv-stream.bandaacehkota.info/memfs/1e560ac1-8b57-416a-b64e-d4190ff83f88_output_0.m3u8",
+    "simpang_dharma4": "https://cctv-stream.bandaacehkota.info/memfs/f9444904-ad31-4401-9643-aee6e33b85c7_output_0.m3u8",
+    "katamso_aniidrus": "https://atcsdishub.pemkomedan.go.id/camera/KATAMSOANIIDRUS.m3u8",
+    "katamso_masjidraya": "https://atcsdishub.pemkomedan.go.id/camera/KATAMSOMASJIDRAYA.m3u8",
+    "gelora1": "https://cctv.balitower.co.id/Gelora-017-700470_3/tracks-v1/index.fmp4.m3u8",
+    "gelora2": "https://cctv.balitower.co.id/Gelora-017-700470_4/tracks-v1/index.fmp4.m3u8",
+    "simpang_lr20": "https://stream.denava.id/stream/a64fdc17-7a69-43b1-a26f-232c3df82641/channel/0/hls/live/index.m3u8"
+}
 
-@app.get("/cctv/{camera_id}", response_class=HTMLResponse)
-def camera_view(request: Request, camera_id: str):
-    data = detections_per_camera.get(camera_id, [])
-    return templates.TemplateResponse(f"cctv_{camera_id}.html", {
-        "request": request,
-        "table_data": data
+camera_streams = {}
+detections_per_camera = {}
+
+# === Database Utilities ===
+def insert_detection(frame, photo, label, time_str, confidence, clahe):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO detections (frame, photo, class, date, confidence, clahe)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (frame, photo, label, time_str, confidence, int(clahe)))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("DB Error:", e)
+
+# === Detection Storage Utilities ===
+def save_detections_to_file():
+    with open(DETECTIONS_FILE, "w") as f:
+        json.dump(detections_per_camera, f)
+
+def load_detections_from_file():
+    global detections_per_camera
+    if os.path.exists(DETECTIONS_FILE):
+        with open(DETECTIONS_FILE, "r") as f:
+            detections_per_camera = json.load(f)
+
+# === Duplicate Filtering ===
+last_boxes = []
+IOU_THRESHOLD = 0.5
+
+def iou(b1, b2):
+    xA = max(b1['x1'], b2['x1'])
+    yA = max(b1['y1'], b2['y1'])
+    xB = min(b1['x2'], b2['x2'])
+    yB = min(b1['y2'], b2['y2'])
+    interArea = max(0, xB - xA) * max(0, yB - yA)
+    boxAArea = (b1['x2'] - b1['x1']) * (b1['y2'] - b1['y1'])
+    boxBArea = (b2['x2'] - b2['x1']) * (b2['y2'] - b2['y1'])
+    union = boxAArea + boxBArea - interArea
+    return interArea / union if union else 0
+
+def is_duplicate(bbox):
+    for prev in last_boxes:
+        if iou(prev, bbox) > IOU_THRESHOLD:
+            return True
+    return False
+
+# === Detection Saving ===
+def save_detection(label, conf, crop_img, bbox, camera_id, frame_count, clahe=False):
+    folder = f"app/static/detected/{camera_id}"
+    os.makedirs(folder, exist_ok=True)
+
+    filename = f"{int(time.time()*1000)}.jpg"
+    abs_path = os.path.join(folder, filename)
+    rel_path = f"detected/{camera_id}/{filename}"
+
+    if not cv2.imwrite(abs_path, crop_img):
+        return
+
+    if camera_id not in detections_per_camera:
+        detections_per_camera[camera_id] = []
+
+    timestamp = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+    detections_per_camera[camera_id].append({
+        "frame": frame_count,
+        "class": label,
+        "confidence": round(conf, 2),
+        "time": timestamp,
+        "img": rel_path,
+        "clahe": clahe
     })
 
-@app.get("/data", response_class=HTMLResponse)
-def data(request: Request):
-    return templates.TemplateResponse("table_all.html", {"request": request})
+    detections_per_camera[camera_id] = detections_per_camera[camera_id][-100:]
+    save_detections_to_file()
+    insert_detection(frame_count, rel_path, label, timestamp, round(conf, 2), clahe)
 
-# === Video Streaming ===
-@app.get("/video_feed/{camera_id}")
-def video_feed(camera_id: str, clip: float = 2.0, tile: int = 8):
-    return StreamingResponse(
-        generate_live_frames(camera_id, apply_clahe=False, clip_limit=clip, tile_size=tile),
-        media_type="multipart/x-mixed-replace; boundary=frame"
-    )
+# === Stream Initialization ===
+def stream_reader(camera_id, url):
+    cap = cv2.VideoCapture(url)
+    if not cap.isOpened():
+        print(f"❌ Failed to open stream {camera_id}")
+        return
 
-@app.get("/video_feed_clahe/{camera_id}")
-def video_feed_clahe(camera_id: str, clip: float = 2.0, tile: int = 8):
-    return StreamingResponse(
-        generate_live_frames(camera_id, apply_clahe=True, clip_limit=clip, tile_size=tile),
-        media_type="multipart/x-mixed-replace; boundary=frame"
-    )
+    while True:
+        success, frame = cap.read()
+        if not success:
+            time.sleep(0.5)
+            continue
+        frame = cv2.resize(frame, (640, 360))
+        with camera_streams[camera_id]["lock"]:
+            camera_streams[camera_id]["frame"] = frame
+        time.sleep(0.03)
 
-# === Image/Video Upload ===
-@app.post("/upload_image", response_class=HTMLResponse)
-def upload_image(request: Request, image: UploadFile = File(...)):
-    image_stream = image.file.read()
-    pil_img = Image.open(io.BytesIO(image_stream)).convert('RGB')
-    image_np = np.array(pil_img)
+def initialize_streams():
+    for cam_id, url in camera_configs.items():
+        camera_streams[cam_id] = {"frame": None, "lock": Lock()}
+        t = Thread(target=stream_reader, args=(cam_id, url), daemon=True)
+        t.start()
+        camera_streams[cam_id]["thread"] = t
 
-    results = model.predict(image_np, imgsz=640, conf=0.25, verbose=False)
-    annotated = results[0].plot()
-    annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+def draw_helm_boxes(image, result):
+    font_scale = 0.4
+    thickness = 2
 
-    _, buffer = cv2.imencode(".jpg", annotated_rgb)
-    img_b64 = base64.b64encode(buffer).decode("utf-8")
+    for box in result.boxes:
+        cls_id = int(box.cls[0])
+        conf = float(box.conf[0])
+        label_name = result.names[cls_id].lower()
 
-    return templates.TemplateResponse("input_image.html", {
-        "request": request,
-        "original_b64": base64.b64encode(image_stream).decode("utf-8"),
-        "prediction_b64": img_b64
-    })
+        # Posisi koordinat bounding box
+        x1, y1, x2, y2 = map(int, box.xyxy[0])
+        w, h = x2 - x1, y2 - y1
 
-@app.post("/upload_video", response_class=HTMLResponse)
-def upload_video(request: Request, video: UploadFile = File(...), clip: float = Form(2.0), tile: int = Form(8)):
-    filename = f"video_{uuid.uuid4()}.mp4"
-    upload_path = os.path.join("app/static/uploads", filename)
-    os.makedirs("app/static/uploads", exist_ok=True)
-
-    with open(upload_path, "wb") as f:
-        shutil.copyfileobj(video.file, f)
-
-    Thread(target=save_uploaded_video_and_process, args=(upload_path, clip, tile), daemon=True).start()
-
-    return templates.TemplateResponse("input_record.html", {
-        "request": request,
-        "original_video": upload_path.split("app/static/")[1],
-        "predicted_video": None
-    })
-
-# === Detection Data Endpoints ===
-@app.get("/detections/{camera_id}")
-def get_detections(camera_id: str):
-    return JSONResponse(detections_per_camera.get(camera_id, []))
-
-@app.get("/detections_count/{camera_id}")
-def get_count_by_camera(camera_id: str):
-    query = "SELECT COUNT(*) FROM detections WHERE photo LIKE ?"
-    like_value = f"%{camera_id}%"
-    conn = sqlite3.connect("app/data/detections.db")
-    c = conn.cursor()
-    c.execute(query, (like_value,))
-    count = c.fetchone()[0]
-    conn.close()
-    return {"camera_id": camera_id, "count": count}
-
-@app.get("/detections_by_location/{location}", response_class=JSONResponse)
-def get_detections_by_location(location: str):
-    location_map = {
-        "banda_aceh": ["simpang_dharma3", "simpang_dharma4"],
-        "medan": ["katamso_aniidrus", "katamso_masjidraya"],
-        "jakarta": ["gelora1", "gelora2"],
-        "pematang_siantar": ["simpang_lr20"]
-    }
-
-    camera_names = {
-        "simpang_dharma3": "Banda Aceh - Simpang Dharma 3",
-        "simpang_dharma4": "Banda Aceh - Simpang Dharma 4",
-        "katamso_aniidrus": "Medan - Katamso Ani Idrus",
-        "katamso_masjidraya": "Medan - Katamso Masjid Raya",
-        "gelora1": "Jakarta - Gelora 1",
-        "gelora2": "Jakarta - Gelora 2",
-        "simpang_lr20": "Pematang Siantar - Sp. Lorong 20"
-    }
-
-    folders = location_map.get(location.lower())
-    if not folders:
-        return []
-
-    query = f"""
-        SELECT frame, photo, class, date, confidence, clahe
-        FROM detections
-        WHERE {" OR ".join(["photo LIKE ?"] * len(folders))}
-        ORDER BY frame ASC
-    """
-    like_values = [f"%{f}%" for f in folders]
-
-    conn = sqlite3.connect("app/data/detections.db")
-    c = conn.cursor()
-    c.execute(query, like_values)
-    rows = c.fetchall()
-    conn.close()
-
-    data_clahe = {}
-    data_nonclahe = {}
-
-    for row in rows:
-        frame, photo, cls, date, conf, clahe = row
-        cam_code = photo.split("/")[1] if "/" in photo else "unknown"
-        key = (frame, cls, photo)
-        entry = {
-            "photo": photo,
-            "class": cls,
-            "date": date,
-            "confidence": conf,
-            "location": camera_names.get(cam_code, "Tidak diketahui")
-        }
-        if clahe == 1:
-            data_clahe[key] = entry
+        # Tentukan warna berdasarkan kelas
+        if label_name == "helm":
+            color = (91, 180, 0)  # Biru
         else:
-            data_nonclahe[key] = entry
+            color = (128, 0, 255)  # Merah
 
-    all_keys = sorted(set(data_clahe.keys()) | set(data_nonclahe.keys()))
-    result = []
+        # Gambar bounding box
+        cv2.rectangle(image, (x1, y1), (x2, y2), color=color, thickness=thickness)
 
-    for i, key in enumerate(all_keys, 1):
-        frame, cls, _ = key
-        n = data_nonclahe.get(key)
-        y = data_clahe.get(key)
+        # Label teks (misal: Helm (92.54%))
+        label_text = f"{label_name} ({conf * 100:.2f}%)"
 
-        result.append({
-            "No": i,
-            "frame": frame,
-            "Gambar_Tanpa_CLAHE": n["photo"] if n else "-",
-            "Gambar_Dengan_CLAHE": y["photo"] if y else "-",
-            "class": cls,
-            "confidence": f'{n["confidence"] if n else "-"} / {y["confidence"] if y else "-"}',
-            "Status_Deteksi": (
-                "Terdeteksi di keduanya" if n and y else
-                "Hanya di CLAHE" if y else
-                "Hanya di Non-CLAHE"
-            ),
-            "date": y["date"] if y else (n["date"] if n else "-"),
-            "location": y["location"] if y else (n["location"] if n else "Tidak diketahui")
-        })
+        # Ukuran teks
+        (text_width, text_height) = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_DUPLEX, font_scale, thickness)[0]
 
-    return result
+        # Kotak latar belakang teks
+        box_coords = ((x1, y1), (x1 + text_width + 10, y1 - text_height - 10))
+        cv2.rectangle(image, box_coords[0], box_coords[1], color=color, thickness=cv2.FILLED)
 
-# === Realtime Detection Comparison & Count ===
-@app.get("/realtime_count_nonclahe/{camera_id}")
-def realtime_count_nonclahe(camera_id: str):
-    data = detections_per_camera.get(camera_id, [])
-    count = {"helm": 0, "no_helm": 0}
-    for det in data:
-        if det.get("clahe") == 0:
-            cls = det["class"].lower()
-            if cls in count:
-                count[cls] += 1
-    return count
+        # Teks putih di atas latar belakang berwarna
+        cv2.putText(image, label_text, (x1 + 5, y1 - 5),
+                    cv2.FONT_HERSHEY_DUPLEX, font_scale, (255, 255, 255), thickness=1)
 
-@app.get("/realtime_count_clahe/{camera_id}")
-def realtime_count_clahe(camera_id: str):
-    data = detections_per_camera.get(camera_id, [])
-    count = {"helm": 0, "no_helm": 0}
-    for det in data:
-        if det.get("clahe") == 1:  # filter hanya CLAHE
-            cls = det["class"].lower()
-            if cls in count:
-                count[cls] += 1
-    return count
+    return image
 
+# === Frame Generator for Live Stream ===
+def generate_live_frames(camera_id, apply_clahe=False, clip_limit=2.0, tile_size=8):
+    frame_count = 0
+    FRAME_SKIP = 2
+    global last_boxes
 
-@app.get("/realtime_comparison/{camera_id}")
-def realtime_comparison(camera_id: str):
-    data = detections_per_camera.get(camera_id, [])
-    result_dict = {}
+    while True:
+        with camera_streams[camera_id]["lock"]:
+            frame = camera_streams[camera_id]["frame"]
+            if frame is None:
+                continue
+            frame = frame.copy()
 
-    for d in data:
-        key = (d['frame'], d['class'])
-        if key not in result_dict:
-            result_dict[key] = {
-                "frame": d['frame'],
-                "class": d['class'],
-                "Gambar_Tanpa_CLAHE": "-",
-                "Gambar_Dengan_CLAHE": "-",
-                "Confidence": "-",
-                "Status_Deteksi": ""
-            }
+        frame_count += 1
+        if frame_count % FRAME_SKIP != 0:
+            continue
 
-        if d.get("clahe"):
-            result_dict[key]["Gambar_Dengan_CLAHE"] = d["img"]
-            result_dict[key]["Confidence"] = f"{result_dict[key]['Confidence'].split(' / ')[0] if ' / ' in result_dict[key]['Confidence'] else '-'} / {d['confidence']}"
-        else:
-            result_dict[key]["Gambar_Tanpa_CLAHE"] = d["img"]
-            result_dict[key]["Confidence"] = f"{d['confidence']} / {result_dict[key]['Confidence'].split(' / ')[1] if ' / ' in result_dict[key]['Confidence'] else '-'}"
+        if apply_clahe:
+            lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+            l, a, b = cv2.split(lab)
+            clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(tile_size, tile_size))
+            cl = clahe.apply(l)
+            limg = cv2.merge((cl, a, b))
+            frame = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
 
-        result_dict[key]["Status_Deteksi"] = (
-            "Terdeteksi di keduanya" if result_dict[key]["Gambar_Tanpa_CLAHE"] != "-" and result_dict[key]["Gambar_Dengan_CLAHE"] != "-" else
-            "Hanya di CLAHE" if result_dict[key]["Gambar_Tanpa_CLAHE"] == "-" else
-            "Hanya di Non-CLAHE"
-        )
+        try:
+            results = model.predict(frame, imgsz=640, conf=0.1, verbose=False, device=device_type)
+            result = results[0]
+        except Exception as e:
+            print("Predict error:", e)
+            continue
 
-    result = []
-    for i, v in enumerate(result_dict.values(), 1):
-        v["No"] = i
-        result.append(v)
+        for box in result.boxes:
+            cls_id = int(box.cls[0])
+            conf = float(box.conf[0])
+            label = model.names[cls_id]
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            h, w = frame.shape[:2]
+            x1, x2 = max(0, min(x1, w)), max(0, min(x2, w))
+            y1, y2 = max(0, min(y1, h)), max(0, min(y2, h))
+            if x2 <= x1 or y2 <= y1:
+                continue
 
-    return result
+            crop_img = frame[y1:y2, x1:x2]
+            bbox = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
+            if is_duplicate(bbox):
+                continue
 
-# === CLAHE Comparison from DB ===
-@app.get("/perbandingan_clahe", response_class=JSONResponse)
-def get_comparison_table():
-    conn = sqlite3.connect("app/data/detections.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT frame, photo, class, confidence, clahe FROM detections ORDER BY frame")
-    rows = cursor.fetchall()
-    conn.close()
+            save_detection(label, conf, crop_img, bbox, camera_id, frame_count, clahe=apply_clahe)
+            last_boxes.append(bbox)
 
-    data_clahe = {}
-    data_nonclahe = {}
+        annotated = draw_helm_boxes(frame, result)
+        ret, buffer = cv2.imencode(".jpg", annotated)
+        if not ret:
+            continue
 
-    for row in rows:
-        frame, photo, cls, conf, clahe = row
-        key = (frame, cls)
-        entry = {"photo": photo, "confidence": conf}
-        (data_clahe if clahe == 1 else data_nonclahe)[key] = entry
+        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
-    keys = sorted(set(data_clahe.keys()) | set(data_nonclahe.keys()))
-    table = []
+# === Video Upload Processor ===
+def save_uploaded_video_and_process(original_path, clip_limit, tile_size):
+    cap = cv2.VideoCapture(original_path)
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 25
+    output_filename = f"app/static/results/result_{int(time.time())}.mp4"
 
-    for i, key in enumerate(keys, 1):
-        frame, cls = key
-        n = data_nonclahe.get(key)
-        y = data_clahe.get(key)
+    writer = imageio.get_writer(output_filename, fps=fps, codec="libx264")
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(tile_size, tile_size))
 
-        table.append({
-            "No": i,
-            "Frame": frame,
-            "Gambar_Tanpa_CLAHE": n["photo"] if n else "-",
-            "Gambar_Dengan_CLAHE": y["photo"] if y else "-",
-            "Class": cls,
-            "Confidence": f'{n["confidence"] if n else "-"} / {y["confidence"] if y else "-"}',
-            "Status_Deteksi": (
-                "Terdeteksi di keduanya" if n and y else
-                "Hanya di CLAHE" if y else
-                "Hanya di Non-CLAHE"
-            )
-        })
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-    return table
+        lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        cl = clahe.apply(l)
+        enhanced = cv2.merge((cl, a, b))
+        enhanced = cv2.cvtColor(enhanced, cv2.COLOR_LAB2BGR)
 
-# === API: Stats and Summary ===
-@app.get("/stats/{location}")
-def get_stats(location: str):
-    location_map = {
-        "banda_aceh": ["simpang_dharma3", "simpang_dharma4"],
-        "medan": ["katamso_aniidrus", "katamso_masjidraya"],
-        "jakarta": ["gelora1", "gelora2"],
-        "pematang_siantar": ["simpang_lr20"]
-    }
+        results = model.predict(enhanced, imgsz=640, conf=0.25, verbose=False, device=device_type)
+        annotated = results[0].plot()
+        writer.append_data(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB))
 
-    folders = location_map.get(location.lower())
-    if not folders:
-        return {"labels": [], "helm": [], "no_helm": []}
-
-    query = f"""
-        SELECT substr(date, 1, 10) as tanggal, class, COUNT(*) 
-        FROM detections
-        WHERE {" OR ".join(["photo LIKE ?"] * len(folders))}
-        GROUP BY tanggal, class
-        ORDER BY tanggal
-    """
-    like_values = [f"%{folder}%" for folder in folders]
-
-    conn = sqlite3.connect("app/data/detections.db")
-    c = conn.cursor()
-    c.execute(query, like_values)
-    rows = c.fetchall()
-    conn.close()
-
-    # Kumpulkan per tanggal
-    date_counts = {}
-    for tanggal, cls, count in rows:
-        if tanggal not in date_counts:
-            date_counts[tanggal] = {"helm": 0, "no_helm": 0}
-        if cls.lower() == "helm":
-            date_counts[tanggal]["helm"] += count
-        else:
-            date_counts[tanggal]["no_helm"] += count
-
-    labels = sorted(date_counts.keys())
-    helm = [date_counts[t]["helm"] for t in labels]
-    no_helm = [date_counts[t]["no_helm"] for t in labels]
-
-    return {"labels": labels, "helm": helm, "no_helm": no_helm}
-
-@app.get("/summary/{location}")
-def get_summary(location: str):
-    location_map = {
-        "banda_aceh": ["simpang_dharma3", "simpang_dharma4"],
-        "medan": ["katamso_aniidrus", "katamso_masjidraya"],
-        "jakarta": ["gelora1", "gelora2"],
-        "pematang_siantar": ["simpang_lr20"]
-    }
-
-    folders = location_map.get(location.lower())
-    if not folders:
-        return {"helm": 0, "non_helm": 0}
-
-    query = f"""
-        SELECT class, COUNT(*) 
-        FROM detections
-        WHERE {" OR ".join(["photo LIKE ?"] * len(folders))}
-        GROUP BY class
-    """
-    like_values = [f"%{folder}%" for folder in folders]
-
-    conn = sqlite3.connect("app/data/detections.db")
-    c = conn.cursor()
-    c.execute(query, like_values)
-    rows = c.fetchall()
-    conn.close()
-
-    result = {"helm": 0, "non_helm": 0}
-    for cls, count in rows:
-        if cls.lower() == "helm":
-            result["helm"] += count
-        else:
-            result["non_helm"] += count
-
-    return result
+    cap.release()
+    writer.close()
+    return output_filename

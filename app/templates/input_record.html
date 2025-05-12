@@ -15,7 +15,8 @@
         rel="stylesheet" />
     <link href="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css') }}"
         rel="stylesheet" />
-    <link href="{{ request.url_for('static', path='assets/plugins/metismenu/css/metisMenu.min.css') }}" rel="stylesheet" />
+    <link href="{{ request.url_for('static', path='assets/plugins/metismenu/css/metisMenu.min.css') }}"
+        rel="stylesheet" />
     <!-- loader-->
     <link href="{{ request.url_for('static', path='assets/css/pace.min.css') }}" rel="stylesheet" />
     <script src="{{ request.url_for('static', path='assets/js/pace.min.js') }}"></script>
@@ -118,18 +119,19 @@
                 </li>
 
                 <li>
-					<a href="javascript:;" class="has-arrow">
-						<div class="parent-icon">
-							<i class='bx bx-webcam'></i>
-						</div>
-						<div class="menu-title">Pematang Siantar</div>
-					</a>
-					<ul>
-						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='simpang_lr20') }}"><i class="bx bx-right-arrow-alt"></i>Sp Lorong 20</a>
-						</li>
-					</ul>
-				</li>
+                    <a href="javascript:;" class="has-arrow">
+                        <div class="parent-icon">
+                            <i class='bx bx-webcam'></i>
+                        </div>
+                        <div class="menu-title">Pematang Siantar</div>
+                    </a>
+                    <ul>
+                        <li>
+                            <a href="{{ request.url_for('camera_view', camera_id='simpang_lr20') }}"><i
+                                    class="bx bx-right-arrow-alt"></i>Sp Lorong 20</a>
+                        </li>
+                    </ul>
+                </li>
 
                 <li class="menu-label">Upload Files</li>
 
@@ -148,6 +150,17 @@
                             <i class='bx bxs-video'></i>
                         </div>
                         <div class="menu-title">Records</div>
+                    </a>
+                </li>
+
+                <li class="menu-label">Database</li>
+
+                <li>
+                    <a href="{{ request.url_for('data') }}">
+                        <div class="parent-icon">
+                            <i class='bx bxs-data'></i>
+                        </div>
+                        <div class="menu-title">View Data</div>
                     </a>
                 </li>
             </ul>
@@ -221,7 +234,6 @@
                                     <button type="submit" class="btn btn-primary mt-3">Proses</button>
                                 </form>
 
-
                             </div>
                         </div>
                     </div>
@@ -256,7 +268,8 @@
 
                                         {% if predicted_video %}
                                         <video controls width="100%">
-                                            <source src="{{ request.url_for('static', path=predicted_video) }}" type="video/mp4">
+                                            <source src="{{ request.url_for('static', path=predicted_video) }}"
+                                                type="video/mp4">
                                         </video>
                                         {% endif %}
                                     </div>
@@ -292,36 +305,36 @@
         <script src="{{ request.url_for('static', path='assets/js/jquery.min.js') }}"></script>
         <script src="{{ request.url_for('static', path='assets/plugins/simplebar/js/simplebar.min.js') }}"></script>
         <script src="{{ request.url_for('static', path='assets/plugins/metismenu/js/metisMenu.min.js') }}"></script>
+        <script src="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js') }}">
+        </script>
+        <script src="{{ request.url_for('static', path='assets/plugins/fancy-file-uploader/jquery.ui.widget.js') }}">
+        </script>
+        <script src="{{ request.url_for('static', path='assets/plugins/fancy-file-uploader/jquery.fileupload.js') }}">
+        </script>
         <script
-            src="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js') }}"></script>
+            src="{{ request.url_for('static', path='assets/plugins/fancy-file-uploader/jquery.iframe-transport.js') }}">
+        </script>
         <script
-            src="{{ request.url_for('static', path='assets/plugins/fancy-file-uploader/jquery.ui.widget.js') }}"></script>
-        <script
-            src="{{ request.url_for('static', path='assets/plugins/fancy-file-uploader/jquery.fileupload.js') }}"></script>
-        <script
-            src="{{ request.url_for('static', path='assets/plugins/fancy-file-uploader/jquery.iframe-transport.js') }}"></script>
-        <script
-            src="{{ request.url_for('static', path='assets/plugins/fancy-file-uploader/jquery.fancy-fileupload.js') }}"></script>
-        <script
-            src="{{ request.url_for('static', path='assets/plugins/Drag-And-Drop/dist/imageuploadify.min.js') }}"></script>
+            src="{{ request.url_for('static', path='assets/plugins/fancy-file-uploader/jquery.fancy-fileupload.js') }}">
+        </script>
+        <script src="{{ request.url_for('static', path='assets/plugins/Drag-And-Drop/dist/imageuploadify.min.js') }}">
+        </script>
         <script>
-            document.addEventListener("DOMContentLoaded", function () {
+            document.addEventListener("DOMContentLoaded", function() {
                 // Kosongkan input file
                 const fileInput = document.getElementById("formFileSm");
                 const videoPreview = document.getElementById("video-preview");
-
                 fileInput.value = ""; // Clear file input
                 videoPreview.removeAttribute("src"); // Remove video source
                 videoPreview.style.display = "none"; // Hide video
             });
         </script>
 
-
         <script>
-            document.getElementById("clipLimit").addEventListener("input", function () {
+            document.getElementById("clipLimit").addEventListener("input", function() {
                 document.getElementById("clipInput").value = this.value;
             });
-            document.getElementById("tileGridSize").addEventListener("input", function () {
+            document.getElementById("tileGridSize").addEventListener("input", function() {
                 document.getElementById("tileInput").value = this.value;
             });
         </script>
@@ -330,8 +343,24 @@
         <script src="assets/js/app.js"></script>
 
         <script>
-            $(document).ready(function () {
-                $('#menu').metisMenu(); // aktifkan metisMenu
+            document.addEventListener("DOMContentLoaded", function() {
+                document.querySelector('.mobile-toggle-menu').addEventListener('click', function() {
+                    document.querySelector('.wrapper').classList.toggle('toggled');
+                });
+                $(".toggle-icon").click(function() {
+                    const wrapper = $(".wrapper");
+                    if (wrapper.hasClass("toggled")) {
+                        wrapper.removeClass("toggled");
+                        $(".sidebar-wrapper").unbind("hover");
+                    } else {
+                        wrapper.addClass("toggled");
+                        $(".sidebar-wrapper").hover(
+                            () => wrapper.addClass("sidebar-hovered"),
+                            () => wrapper.removeClass("sidebar-hovered")
+                        );
+                    }
+                });
+                $('#menu').metisMenu();
             });
         </script>
 

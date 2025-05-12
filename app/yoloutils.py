@@ -1,15 +1,31 @@
-import cv2
-import time
+# === Imports ===
 import os
+import cv2
 import json
+import time
+import torch
 import sqlite3
-import numpy as np
 import imageio.v2 as imageio
+import numpy as np
 from datetime import datetime
 from threading import Thread, Lock
 from ultralytics import YOLO
 
+# === Device Check ===
+device_type = "cuda" if torch.cuda.is_available() else "cpu"
+print("Torch version:", torch.__version__)
+print("CUDA available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("CUDA device name:", torch.cuda.get_device_name(0))
+print(f"🚀 YOLOv8 model loaded on: {device_type.upper()}")
+
+# === Load YOLO Model ===
 model = YOLO("app/data/model/best.pt")
+
+# === Paths & Global Variables ===
+DETECTIONS_FILE = "app/static/detections.json"
+DB_PATH = "app/data/detections.db"
+os.makedirs("app/static/detected", exist_ok=True)
 
 camera_configs = {
     "simpang_dharma3": "https://cctv-stream.bandaacehkota.info/memfs/1e560ac1-8b57-416a-b64e-d4190ff83f88_output_0.m3u8",
@@ -23,24 +39,22 @@ camera_configs = {
 
 camera_streams = {}
 detections_per_camera = {}
-DETECTIONS_FILE = "app/static/detections.json"
-os.makedirs("app/static/detected", exist_ok=True)
 
-DB_PATH = "app/data/detections.db"
-
-def insert_detection(frame, photo, label, time_str, confidence):
+# === Database Utilities ===
+def insert_detection(frame, photo, label, time_str, confidence, clahe):
     try:
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute("""
-            INSERT INTO detections (frame, photo, class, date, confidence)
-            VALUES (?, ?, ?, ?, ?)
-        """, (frame, photo, label, time_str, confidence))
+            INSERT INTO detections (frame, photo, class, date, confidence, clahe)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (frame, photo, label, time_str, confidence, int(clahe)))
         conn.commit()
         conn.close()
     except Exception as e:
         print("DB Error:", e)
 
+# === Detection Storage Utilities ===
 def save_detections_to_file():
     with open(DETECTIONS_FILE, "w") as f:
         json.dump(detections_per_camera, f)
@@ -51,6 +65,7 @@ def load_detections_from_file():
         with open(DETECTIONS_FILE, "r") as f:
             detections_per_camera = json.load(f)
 
+# === Duplicate Filtering ===
 last_boxes = []
 IOU_THRESHOLD = 0.5
 
@@ -71,7 +86,8 @@ def is_duplicate(bbox):
             return True
     return False
 
-def save_detection(label, conf, crop_img, bbox, camera_id, frame_count):
+# === Detection Saving ===
+def save_detection(label, conf, crop_img, bbox, camera_id, frame_count, clahe=False):
     folder = f"app/static/detected/{camera_id}"
     os.makedirs(folder, exist_ok=True)
 
@@ -79,8 +95,7 @@ def save_detection(label, conf, crop_img, bbox, camera_id, frame_count):
     abs_path = os.path.join(folder, filename)
     rel_path = f"detected/{camera_id}/{filename}"
 
-    saved = cv2.imwrite(abs_path, crop_img)
-    if not saved:
+    if not cv2.imwrite(abs_path, crop_img):
         return
 
     if camera_id not in detections_per_camera:
@@ -93,25 +108,29 @@ def save_detection(label, conf, crop_img, bbox, camera_id, frame_count):
         "class": label,
         "confidence": round(conf, 2),
         "time": timestamp,
-        "img": rel_path
+        "img": rel_path,
+        "clahe": clahe
     })
 
     detections_per_camera[camera_id] = detections_per_camera[camera_id][-100:]
     save_detections_to_file()
-    insert_detection(frame_count, rel_path, label, timestamp, round(conf, 2))
+    insert_detection(frame_count, rel_path, label, timestamp, round(conf, 2), clahe)
 
+# === Stream Initialization ===
 def stream_reader(camera_id, url):
     cap = cv2.VideoCapture(url)
     if not cap.isOpened():
         print(f"❌ Failed to open stream {camera_id}")
         return
+
     while True:
         success, frame = cap.read()
         if not success:
             time.sleep(0.5)
             continue
+        frame = cv2.resize(frame, (640, 360))
         with camera_streams[camera_id]["lock"]:
-            camera_streams[camera_id]["frame"] = frame.copy()
+            camera_streams[camera_id]["frame"] = frame
         time.sleep(0.03)
 
 def initialize_streams():
@@ -121,10 +140,50 @@ def initialize_streams():
         t.start()
         camera_streams[cam_id]["thread"] = t
 
+def draw_helm_boxes(image, result):
+    font_scale = 0.4
+    thickness = 2
+
+    for box in result.boxes:
+        cls_id = int(box.cls[0])
+        conf = float(box.conf[0])
+        label_name = result.names[cls_id].lower()
+
+        # Posisi koordinat bounding box
+        x1, y1, x2, y2 = map(int, box.xyxy[0])
+        w, h = x2 - x1, y2 - y1
+
+        # Tentukan warna berdasarkan kelas
+        if label_name == "helm":
+            color = (91, 180, 0)  # Biru
+        else:
+            color = (128, 0, 255)  # Merah
+
+        # Gambar bounding box
+        cv2.rectangle(image, (x1, y1), (x2, y2), color=color, thickness=thickness)
+
+        # Label teks (misal: Helm (92.54%))
+        label_text = f"{label_name} ({conf * 100:.2f}%)"
+
+        # Ukuran teks
+        (text_width, text_height) = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_DUPLEX, font_scale, thickness)[0]
+
+        # Kotak latar belakang teks
+        box_coords = ((x1, y1), (x1 + text_width + 10, y1 - text_height - 10))
+        cv2.rectangle(image, box_coords[0], box_coords[1], color=color, thickness=cv2.FILLED)
+
+        # Teks putih di atas latar belakang berwarna
+        cv2.putText(image, label_text, (x1 + 5, y1 - 5),
+                    cv2.FONT_HERSHEY_DUPLEX, font_scale, (255, 255, 255), thickness=1)
+
+    return image
+
+# === Frame Generator for Live Stream ===
 def generate_live_frames(camera_id, apply_clahe=False, clip_limit=2.0, tile_size=8):
     frame_count = 0
     FRAME_SKIP = 2
     global last_boxes
+
     while True:
         with camera_streams[camera_id]["lock"]:
             frame = camera_streams[camera_id]["frame"]
@@ -136,7 +195,6 @@ def generate_live_frames(camera_id, apply_clahe=False, clip_limit=2.0, tile_size
         if frame_count % FRAME_SKIP != 0:
             continue
 
-        frame = cv2.resize(frame, (640, 360))
         if apply_clahe:
             lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
             l, a, b = cv2.split(lab)
@@ -146,9 +204,10 @@ def generate_live_frames(camera_id, apply_clahe=False, clip_limit=2.0, tile_size
             frame = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
 
         try:
-            results = model.predict(frame, imgsz=640, conf=0.1, verbose=False, device=0)
+            results = model.predict(frame, imgsz=640, conf=0.1, verbose=False, device=device_type)
             result = results[0]
-        except:
+        except Exception as e:
+            print("Predict error:", e)
             continue
 
         for box in result.boxes:
@@ -157,31 +216,34 @@ def generate_live_frames(camera_id, apply_clahe=False, clip_limit=2.0, tile_size
             label = model.names[cls_id]
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             h, w = frame.shape[:2]
-            x1 = max(0, min(x1, w))
-            x2 = max(0, min(x2, w))
-            y1 = max(0, min(y1, h))
-            y2 = max(0, min(y2, h))
+            x1, x2 = max(0, min(x1, w)), max(0, min(x2, w))
+            y1, y2 = max(0, min(y1, h)), max(0, min(y2, h))
             if x2 <= x1 or y2 <= y1:
                 continue
+
             crop_img = frame[y1:y2, x1:x2]
             bbox = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
             if is_duplicate(bbox):
                 continue
-            save_detection(label, conf, crop_img, bbox, camera_id, frame_count)
+
+            save_detection(label, conf, crop_img, bbox, camera_id, frame_count, clahe=apply_clahe)
             last_boxes.append(bbox)
 
-        annotated = result.plot()
+        annotated = draw_helm_boxes(frame, result)
         ret, buffer = cv2.imencode(".jpg", annotated)
         if not ret:
             continue
+
         yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
+# === Video Upload Processor ===
 def save_uploaded_video_and_process(original_path, clip_limit, tile_size):
     cap = cv2.VideoCapture(original_path)
     w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS) or 25
     output_filename = f"app/static/results/result_{int(time.time())}.mp4"
+
     writer = imageio.get_writer(output_filename, fps=fps, codec="libx264")
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(tile_size, tile_size))
 
@@ -189,13 +251,14 @@ def save_uploaded_video_and_process(original_path, clip_limit, tile_size):
         ret, frame = cap.read()
         if not ret:
             break
+
         lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
         cl = clahe.apply(l)
         enhanced = cv2.merge((cl, a, b))
         enhanced = cv2.cvtColor(enhanced, cv2.COLOR_LAB2BGR)
 
-        results = model.predict(enhanced, imgsz=640, conf=0.25, verbose=False)
+        results = model.predict(enhanced, imgsz=640, conf=0.25, verbose=False, device=device_type)
         annotated = results[0].plot()
         writer.append_data(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB))
 

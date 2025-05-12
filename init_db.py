@@ -10,13 +10,13 @@ def create_database():
             photo TEXT,
             class TEXT,
             date TEXT,
-            confidence REAL
+            confidence REAL,
+            clahe INTEGER  -- 0 = tanpa CLAHE, 1 = dengan CLAHE
         );
     """)
     conn.commit()
     conn.close()
 
-# Jalankan hanya sekali saat setup awal
 if __name__ == "__main__":
     create_database()
     print("✅ Database and table 'detections' created successfully.")

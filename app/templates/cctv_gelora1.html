@@ -7,28 +7,17 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!--favicon-->
 	<link rel="icon" href="{{ request.url_for('static', path='assets/images/icon.png') }}" type="image/png" />
-	<!--plugins-->
-	<link href="{{ request.url_for('static', path='assets/plugins/vectormap/jquery-jvectormap-2.0.2.css') }}"
-		rel="stylesheet" />
 	<link href="{{ request.url_for('static', path='assets/plugins/simplebar/css/simplebar.css') }}" rel="stylesheet" />
-	<link href="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css') }}"
+	<link href="{{ request.url_for('static', path='assets/plugins/metismenu/css/metisMenu.min.css') }}"
 		rel="stylesheet" />
-	<link href="{{ request.url_for('static', path='assets/plugins/metismenu/css/metisMenu.min.css') }}" rel="stylesheet" />
 	<!-- loader-->
 	<link href="{{ request.url_for('static', path='assets/css/pace.min.css') }}" rel="stylesheet" />
 	<script src="{{ request.url_for('static', path='assets/js/pace.min.js') }}"></script>
 	<!-- Bootstrap CSS -->
 	<link href="{{ request.url_for('static', path='assets/css/bootstrap.min.css') }}" rel="stylesheet">
 	<link href="{{ request.url_for('static', path='assets/css/bootstrap-extended.css') }}" rel="stylesheet">
-	<link
-		href="{{ request.url_for('static', path='https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap') }}"
-		rel="stylesheet">
 	<link href="{{ request.url_for('static', path='assets/css/app.css') }}" rel="stylesheet">
 	<link href="{{ request.url_for('static', path='assets/css/icons.css') }}" rel="stylesheet">
-	<!-- Theme Style CSS -->
-	<link rel="stylesheet" href="{{ request.url_for('static', path='assets/css/dark-theme.css') }}" />
-	<link rel="stylesheet" href="{{ request.url_for('static', path='assets/css/semi-dark.css') }}" />
-	<link rel="stylesheet" href="{{ request.url_for('static', path='assets/css/header-colors.css') }}" />
 	<title>Helm Detection</title>
 </head>
 
@@ -39,7 +28,8 @@
 		<div class="sidebar-wrapper" data-simplebar="true">
 			<div class="sidebar-header">
 				<div>
-					<img src="{{ request.url_for('static', path='assets/images/icon.png') }}" class="logo-icon" alt="logo icon">
+					<img src="{{ request.url_for('static', path='assets/images/icon.png') }}" class="logo-icon"
+						alt="logo icon">
 				</div>
 				<div>
 					<h4 class="logo-text">VizoHelm</h4>
@@ -67,10 +57,12 @@
 					</a>
 					<ul>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='simpang_dharma3') }}"><i class="bx bx-right-arrow-alt"></i>Simpang Dharma 3</a>
+							<a href="{{ request.url_for('camera_view', camera_id='simpang_dharma3') }}"><i
+									class="bx bx-right-arrow-alt"></i>Simpang Dharma 3</a>
 						</li>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='simpang_dharma4') }}"><i class="bx bx-right-arrow-alt"></i>Simpang Dharma 4</a>
+							<a href="{{ request.url_for('camera_view', camera_id='simpang_dharma4') }}"><i
+									class="bx bx-right-arrow-alt"></i>Simpang Dharma 4</a>
 						</li>
 					</ul>
 				</li>
@@ -84,10 +76,12 @@
 					</a>
 					<ul>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='katamso_aniidrus') }}"><i class="bx bx-right-arrow-alt"></i>Katamso Ani Idrus</a>
+							<a href="{{ request.url_for('camera_view', camera_id='katamso_aniidrus') }}"><i
+									class="bx bx-right-arrow-alt"></i>Katamso Ani Idrus</a>
 						</li>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='katamso_masjidraya') }}"><i class="bx bx-right-arrow-alt"></i>Katamso Masjid
+							<a href="{{ request.url_for('camera_view', camera_id='katamso_masjidraya') }}"><i
+									class="bx bx-right-arrow-alt"></i>Katamso Masjid
 								Raya</a>
 						</li>
 					</ul>
@@ -102,10 +96,12 @@
 					</a>
 					<ul>
 						<li class="mm-active">
-							<a href="{{ request.url_for('camera_view', camera_id='gelora1') }}"><i class="bx bx-right-arrow-alt"></i>Gelora</a>
+							<a href="{{ request.url_for('camera_view', camera_id='gelora1') }}"><i
+									class="bx bx-right-arrow-alt"></i>Gelora</a>
 						</li>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='gelora2') }}"><i class="bx bx-right-arrow-alt"></i>Gelora 2</a>
+							<a href="{{ request.url_for('camera_view', camera_id='gelora2') }}"><i
+									class="bx bx-right-arrow-alt"></i>Gelora 2</a>
 						</li>
 					</ul>
 				</li>
@@ -119,7 +115,8 @@
 					</a>
 					<ul>
 						<li>
-							<a href="{{ request.url_for('camera_view', camera_id='simpang_lr20') }}"><i class="bx bx-right-arrow-alt"></i>Sp Lorong 20</a>
+							<a href="{{ request.url_for('camera_view', camera_id='simpang_lr20') }}"><i
+									class="bx bx-right-arrow-alt"></i>Sp Lorong 20</a>
 						</li>
 					</ul>
 				</li>
@@ -135,12 +132,23 @@
 					</a>
 				</li>
 
-				<li>
-					<a href="{{ request.url_for('upload_video') }}">
+				<li style="pointer-events: none; cursor: not-allowed; opacity: 0.5;">
+					<a href="#">
 						<div class="parent-icon">
 							<i class='bx bxs-video'></i>
 						</div>
 						<div class="menu-title">Records</div>
+					</a>
+				</li>
+
+				<li class="menu-label">Database</li>
+
+				<li>
+					<a href="{{ request.url_for('data') }}">
+						<div class="parent-icon">
+							<i class='bx bxs-data'></i>
+						</div>
+						<div class="menu-title">View Data</div>
 					</a>
 				</li>
 			</ul>
@@ -212,6 +220,9 @@
 
 										<div class="mt-4">
 											<h6 class="mt-2 mb-4 text-center">Original CCTV</h6>
+											<div id="count-nonclahe" class="mt-2 text-center text-muted small">
+												Loading...
+											</div>
 										</div>
 									</div>
 								</div>
@@ -254,6 +265,11 @@
 
 											</div>
 										</div>
+
+										<div id="count-clahe" class="mt-2 text-center text-muted small">
+											Loading...
+										</div>
+
 									</div>
 								</div>
 							</div>
@@ -272,16 +288,17 @@
 							<table class="table align-middle mb-0">
 								<thead class="table-light text-center">
 									<tr>
-										<th>No.</th>
+										<th>No</th>
 										<th>Frame</th>
-										<th>Photo</th>
+										<th>Gambar Tanpa CLAHE</th>
+										<th>Gambar Dengan CLAHE</th>
 										<th>Class</th>
-										<th>Date</th>
 										<th>Confidence</th>
+										<th>Status Deteksi</th>
 									</tr>
 								</thead>
-								<tbody id="detection-table-body">
-
+								<tbody id="comparison-table-body">
+									<!-- Filled dynamically -->
 								</tbody>
 
 							</table>
@@ -290,115 +307,140 @@
 				</div>
 			</div>
 			<!--end page wrapper -->
-
-			<!--start overlay-->
-			<div class="overlay toggle-icon"></div>
-			<!--end overlay-->
-
-			<!--Start Back To Top Button-->
-			<a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
-			<!--End Back To Top Button-->
-
-			<footer class="page-footer">
-				<p class="mb-0">Copyright © 2025. All right reserved.</p>
-			</footer>
-
 		</div>
-		<!--end wrapper-->
 
-		<!-- Bootstrap JS -->
-		<script src="{{ request.url_for('static', path='assets/js/bootstrap.bundle.min.js') }}"></script>
-		<!--plugins-->
-		<script src="{{ request.url_for('static', path='assets/js/jquery.min.js') }}"></script>
-		<script src="{{ request.url_for('static', path='assets/plugins/simplebar/js/simplebar.min.js') }}"></script>
-		<script src="{{ request.url_for('static', path='assets/plugins/metismenu/js/metisMenu.min.js') }}"></script>
-		<script
-			src="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js') }}"></script>
-		<script
-			src="{{ request.url_for('static', path='assets/plugins/vectormap/jquery-jvectormap-2.0.2.min.js') }}"></script>
-		<script
-			src="{{ request.url_for('static', path='assets/plugins/vectormap/jquery-jvectormap-world-mill-en.js') }}"></script>
-		<script src="{{ request.url_for('static', path='assets/plugins/chartjs/js/Chart.min.js') }}"></script>
-		<script src="{{ request.url_for('static', path='assets/plugins/chartjs/js/Chart.extension.js') }}"></script>
-		<script src="{{ request.url_for('static', path='assets/js/index.js') }}"></script>
-		<!--app JS-->
-		<script src="{{ request.url_for('static', path='assets/js/app.js') }}"></script>
+		<!--start overlay-->
+		<div class="overlay toggle-icon"></div>
+		<!--end overlay-->
 
-		<script>
-			$(document).ready(function () {
-				$('#menu').metisMenu(); // aktifkan metisMenu
+		<footer class="page-footer">
+			<p class="mb-0">Copyright © 2025. All right reserved.</p>
+		</footer>
+	</div>
+	<!--end wrapper-->
+
+	<!-- Bootstrap JS -->
+	<script src="{{ request.url_for('static', path='assets/js/bootstrap.bundle.min.js') }}"></script>
+	<!--plugins-->
+	<script src="{{ request.url_for('static', path='assets/js/jquery.min.js') }}"></script>
+	<script src="{{ request.url_for('static', path='assets/plugins/simplebar/js/simplebar.min.js') }}"></script>
+	<script src="{{ request.url_for('static', path='assets/plugins/metismenu/js/metisMenu.min.js') }}"></script>
+	<script src="{{ request.url_for('static', path='assets/plugins/chartjs/js/Chart.min.js') }}"></script>
+	<script src="{{ request.url_for('static', path='assets/plugins/chartjs/js/Chart.extension.js') }}"></script>
+
+	<script>
+		document.addEventListener("DOMContentLoaded", function() {
+			document.querySelector('.mobile-toggle-menu').addEventListener('click', function() {
+				document.querySelector('.wrapper').classList.toggle('toggled');
 			});
-		</script>
-
-		<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
-		<script>
-			document.addEventListener("DOMContentLoaded", function () {
-				const claheImg = document.getElementById("video-clahe");
-				const clipSlider = document.getElementById("clipLimit");
-				const tileSlider = document.getElementById("tileGridSize");
-				const clipOutput = document.getElementById("clipValueOutput");
-				const tileOutput = document.getElementById("tileValueOutput");
-
-				function updateCLAHEStream() {
-					const clip = clipSlider.value;
-					const tile = tileSlider.value;
-					clipOutput.textContent = clip;
-					tileOutput.textContent = tile;
-					claheImg.src = `/video_feed_clahe/gelora1?clip=${clip}&tile=${tile}&t=${Date.now()}`;
+			$(".toggle-icon").click(function() {
+				const wrapper = $(".wrapper");
+				if (wrapper.hasClass("toggled")) {
+					wrapper.removeClass("toggled");
+					$(".sidebar-wrapper").unbind("hover");
+				} else {
+					wrapper.addClass("toggled");
+					$(".sidebar-wrapper").hover(
+						() => wrapper.addClass("sidebar-hovered"),
+						() => wrapper.removeClass("sidebar-hovered")
+					);
 				}
-
-				// Sync nilai awal saat pertama kali halaman dimuat
-				updateCLAHEStream();
-
-				// Update saat digeser
-				clipSlider.addEventListener("input", updateCLAHEStream);
-				tileSlider.addEventListener("input", updateCLAHEStream);
 			});
-		</script>
+			$('#menu').metisMenu();
+		});
+	</script>
 
+	<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-		<script>
-			let lastFrameSeen = 0;
+	<script>
+		document.addEventListener("DOMContentLoaded", function() {
+			const claheImg = document.getElementById("video-clahe");
+			const clipSlider = document.getElementById("clipLimit");
+			const tileSlider = document.getElementById("tileGridSize");
+			const clipOutput = document.getElementById("clipValueOutput");
+			const tileOutput = document.getElementById("tileValueOutput");
 
-			function loadDetections() {
-				fetch("/detections/gelora1")
-					.then(res => res.json())
-					.then(data => {
-						const tbody = document.getElementById("detection-table-body");
+			function updateCLAHEStream() {
+				const clip = clipSlider.value;
+				const tile = tileSlider.value;
+				clipOutput.textContent = clip;
+				tileOutput.textContent = tile;
+				claheImg.src = `/video_feed_clahe/gelora1?clip=${clip}&tile=${tile}&t=${Date.now()}`;
+			}
+			// Sync nilai awal saat pertama kali halaman dimuat
+			updateCLAHEStream();
+			// Update saat digeser
+			clipSlider.addEventListener("input", updateCLAHEStream);
+			tileSlider.addEventListener("input", updateCLAHEStream);
+		});
+	</script>
 
-						data.forEach((item, idx) => {
-							if (item.frame > lastFrameSeen) {
-								lastFrameSeen = item.frame;
+	<script>
+		let lastSeenFrames = new Set();
 
-								const row = document.createElement("tr");
-								row.classList.add("text-center", "bg-warning"); // highlight baris baru
+		function loadComparison() {
+			fetch("/realtime_comparison/gelora1")
+				.then(res => res.json())
+				.then(data => {
+					const tbody = document.getElementById("comparison-table-body");
+					data.forEach(row => {
+						const key = `${row.frame}-${row.class}`;
+						if (!lastSeenFrames.has(key)) {
+							lastSeenFrames.add(key);
+							const tr = document.createElement("tr");
+							tr.classList.add("text-center", "bg-warning");
+							tr.innerHTML = `
+                            <td>${row.No}</td>
+                            <td>${row.frame}</td>
+							<td class="text-center align-middle">
+								<div style="display: flex; justify-content: center; align-items: center; height: 100px;">
+									<img src="/static/${row.Gambar_Tanpa_CLAHE !== '-' ? row.Gambar_Tanpa_CLAHE : '/assets/images/no_image.jpg'}"
+										class="product-img-2"
+										style="max-height: 100%; max-width: 60px;">
+								</div>
+							</td>
+							<td class="text-center align-middle">
+								<div style="display: flex; justify-content: center; align-items: center; height: 100px;">
+									<img src="/static/${row.Gambar_Dengan_CLAHE !== '-' ? row.Gambar_Dengan_CLAHE : '/assets/images/no_image.jpg'}"
+										class="product-img-2"
+										style="max-height: 100%; max-width: 60px;">
+								</div>
+							</td>
 
-								row.innerHTML = `
-							<td>${idx + 1}</td>
-							<td>${item.frame}</td>
-							<td><img src="/static/${item.img}" class="product-img-2" style="max-width: 100px;"></td>
-							<td>
-								<span class="badge ${item.class.toLowerCase() === 'helm' ? 'bg-gradient-quepal' : 'bg-gradient-bloody'} text-white shadow-sm w-100">
-									${item.class}
+                            <td>
+								<span class="badge ${row.class.toLowerCase() === 'helm' ? 'bg-gradient-quepal' : 'bg-gradient-bloody'} text-white shadow-sm w-100">
+									${row.class}
 								</span>
 							</td>
-							<td>${item.time}</td>
-							<td>${item.confidence}</td>
-						`;
-
-								tbody.appendChild(row);
-
-								// Hapus highlight setelah 1 detik
-								setTimeout(() => row.classList.remove("bg-warning"), 1000);
-							}
-						});
+                            <td>${row.Confidence}</td>
+                            <td>${row.Status_Deteksi}</td>
+                        `;
+							tbody.appendChild(tr);
+							setTimeout(() => tr.classList.remove("bg-warning"), 500);
+						}
 					});
-			}
+				});
+		}
+		setInterval(loadComparison, 3000);
+		window.onload = loadComparison;
+	</script>
 
-			setInterval(loadDetections, 3000);
-			window.onload = loadDetections;
-		</script>
+	<script>
+		function loadRealtimeCount(endpoint, elementId) {
+			fetch(endpoint)
+				.then(res => res.json())
+				.then(data => {
+					document.getElementById(elementId).innerHTML = `
+							<span class="badge bg-gradient-quepal fs-6">Helm: ${data.helm}</span> |
+							<span class="badge bg-gradient-bloody fs-6">Tanpa Helm: ${data.no_helm}</span>
+						`;
+				});
+		}
+		setInterval(() => {
+			loadRealtimeCount("/realtime_count_nonclahe/gelora1", "count-nonclahe");
+			loadRealtimeCount("/realtime_count_clahe/gelora1", "count-clahe");
+		}, 3000); // refresh setiap 3 detik
+	</script>
 </body>
 
 </html>

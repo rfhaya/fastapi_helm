@@ -7,12 +7,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!--favicon-->
 	<link rel="icon" href="{{ request.url_for('static', path='assets/images/icon.png') }}" type="image/png" />
-	<!--plugins-->
-	<link href="{{ request.url_for('static', path='assets/plugins/vectormap/jquery-jvectormap-2.0.2.css') }}"
-		rel="stylesheet" />
 	<link href="{{ request.url_for('static', path='assets/plugins/simplebar/css/simplebar.css') }}" rel="stylesheet" />
-	<link href="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css') }}"
-		rel="stylesheet" />
 	<link href="{{ request.url_for('static', path='assets/plugins/metismenu/css/metisMenu.min.css') }}"
 		rel="stylesheet" />
 	<!-- loader-->
@@ -21,15 +16,8 @@
 	<!-- Bootstrap CSS -->
 	<link href="{{ request.url_for('static', path='assets/css/bootstrap.min.css') }}" rel="stylesheet">
 	<link href="{{ request.url_for('static', path='assets/css/bootstrap-extended.css') }}" rel="stylesheet">
-	<link
-		href="{{ request.url_for('static', path='https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap') }}"
-		rel="stylesheet">
 	<link href="{{ request.url_for('static', path='assets/css/app.css') }}" rel="stylesheet">
 	<link href="{{ request.url_for('static', path='assets/css/icons.css') }}" rel="stylesheet">
-	<!-- Theme Style CSS -->
-	<link rel="stylesheet" href="{{ request.url_for('static', path='assets/css/dark-theme.css') }}" />
-	<link rel="stylesheet" href="{{ request.url_for('static', path='assets/css/semi-dark.css') }}" />
-	<link rel="stylesheet" href="{{ request.url_for('static', path='assets/css/header-colors.css') }}" />
 	<title>Helm Detection</title>
 </head>
 
@@ -144,12 +132,23 @@
 					</a>
 				</li>
 
-				<li>
-					<a href="{{ request.url_for('upload_video') }}">
+				<li style="pointer-events: none; cursor: not-allowed; opacity: 0.5;">
+					<a href="#">
 						<div class="parent-icon">
 							<i class='bx bxs-video'></i>
 						</div>
 						<div class="menu-title">Records</div>
+					</a>
+				</li>
+
+				<li class="menu-label">Database</li>
+
+				<li>
+					<a href="{{ request.url_for('data') }}">
+						<div class="parent-icon">
+							<i class='bx bxs-data'></i>
+						</div>
+						<div class="menu-title">View Data</div>
 					</a>
 				</li>
 			</ul>
@@ -271,85 +270,83 @@
 							</div>
 						</div>
 					</div>
-				</div><!--end row-->
+				</div>
+				<!--end row-->
 
 			</div>
 		</div>
 		<!--end page wrapper -->
+
 		<!--start overlay-->
 		<div class="overlay toggle-icon"></div>
 		<!--end overlay-->
-		<!--Start Back To Top Button-->
-		<a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
-		<!--End Back To Top Button-->
+
 		<footer class="page-footer">
 			<p class="mb-0">Copyright © 2025. All right reserved.</p>
 		</footer>
 	</div>
 	<!--end wrapper-->
 
-	<!-- Bootstrap JS -->
+	<!-- Scripts -->
 	<script src="{{ request.url_for('static', path='assets/js/bootstrap.bundle.min.js') }}"></script>
-	<!--plugins-->
 	<script src="{{ request.url_for('static', path='assets/js/jquery.min.js') }}"></script>
 	<script src="{{ request.url_for('static', path='assets/plugins/simplebar/js/simplebar.min.js') }}"></script>
 	<script src="{{ request.url_for('static', path='assets/plugins/metismenu/js/metisMenu.min.js') }}"></script>
-	<script
-		src="{{ request.url_for('static', path='assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js') }}"></script>
-	<script
-		src="{{ request.url_for('static', path='assets/plugins/vectormap/jquery-jvectormap-2.0.2.min.js') }}"></script>
-	<script
-		src="{{ request.url_for('static', path='assets/plugins/vectormap/jquery-jvectormap-world-mill-en.js') }}"></script>
 	<script src="{{ request.url_for('static', path='assets/plugins/chartjs/js/Chart.min.js') }}"></script>
 	<script src="{{ request.url_for('static', path='assets/plugins/chartjs/js/Chart.extension.js') }}"></script>
-	<script src="{{ request.url_for('static', path='assets/js/index.js') }}"></script>
-	<!--app JS-->
-	<script src="{{ request.url_for('static', path='assets/js/app.js') }}"></script>
 
+	<!-- Sidebar Toggle -->
 	<script>
-		$(document).ready(function () {
-			$('#menu').metisMenu(); // aktifkan metisMenu
+		document.addEventListener("DOMContentLoaded", function() {
+			document.querySelector('.mobile-toggle-menu').addEventListener('click', function() {
+				document.querySelector('.wrapper').classList.toggle('toggled');
+			});
+			$(".toggle-icon").click(function() {
+				const wrapper = $(".wrapper");
+				if (wrapper.hasClass("toggled")) {
+					wrapper.removeClass("toggled");
+					$(".sidebar-wrapper").unbind("hover");
+				} else {
+					wrapper.addClass("toggled");
+					$(".sidebar-wrapper").hover(
+						() => wrapper.addClass("sidebar-hovered"),
+						() => wrapper.removeClass("sidebar-hovered")
+					);
+				}
+			});
+			$('#menu').metisMenu();
 		});
 	</script>
 
+	<!-- Chart: Bar -->
 	<script>
-		let chartPerDay;  // Simpan instance Chart.js global
+		let chartPerDay;
 
 		function updateChart(location) {
 			fetch("/stats/" + location)
 				.then(response => response.json())
 				.then(data => {
 					const ctx = document.getElementById("chart_per_day").getContext('2d');
-
 					const gradient1 = ctx.createLinearGradient(0, 0, 0, 300);
 					gradient1.addColorStop(0, '#6078ea');
 					gradient1.addColorStop(1, '#17c5ea');
-
 					const gradient2 = ctx.createLinearGradient(0, 0, 0, 300);
 					gradient2.addColorStop(0, '#ff8359');
 					gradient2.addColorStop(1, '#ffdf40');
-
-					// Hapus chart sebelumnya jika ada
-					if (chartPerDay) {
-						chartPerDay.destroy();
-					}
-
+					if (chartPerDay) chartPerDay.destroy();
 					chartPerDay = new Chart(ctx, {
 						type: 'bar',
 						data: {
 							labels: data.labels,
-							datasets: [
-								{
+							datasets: [{
 									label: 'Helm',
 									data: data.helm,
-									backgroundColor: gradient1,
-									borderWidth: 1
+									backgroundColor: gradient1
 								},
 								{
 									label: 'Non-Helm',
 									data: data.no_helm,
-									backgroundColor: gradient2,
-									borderWidth: 1,
+									backgroundColor: gradient2
 								}
 							]
 						},
@@ -384,46 +381,9 @@
 					});
 				});
 		}
-
-
-		function updateLocationText(location) {
-			const labelMap = {
-				"banda_aceh": "Banda Aceh",
-				"medan": "Medan",
-				"jakarta": "Jakarta",
-				"pematang_siantar": "Pematang Siantar"
-			};
-			const displayText = `(${labelMap[location] || location})`;
-
-			document.getElementById("current-location").innerText = displayText;
-			document.getElementById("current-location-pie").innerText = displayText;
-		}
-
-		// Panggil default saat load awal
-		document.addEventListener("DOMContentLoaded", function () {
-			updateChart("banda_aceh");
-
-			// Tambah event listener untuk semua item dropdown
-			document.querySelectorAll(".dropdown-item[data-location]").forEach(item => {
-				item.addEventListener("click", function () {
-					const selectedLocation = this.getAttribute("data-location");
-					updateChart(selectedLocation);
-					updateLocationText(selectedLocation);  // tambahkan ini
-
-					// Update text daerah
-					const labelMap = {
-						"banda": "Banda Aceh",
-						"medan": "Medan",
-						"jakarta": "Jakarta",
-						"pematang_siantar": "Pematang Siantar"
-					};
-					document.getElementById("current-location").innerText = `(${labelMap[selectedLocation] || selectedLocation})`;
-				});
-			});
-
-		});
 	</script>
 
+	<!-- Chart: Pie -->
 	<script>
 		let chartPie;
 
@@ -432,9 +392,7 @@
 				.then(res => res.json())
 				.then(data => {
 					const ctx = document.getElementById("chart_pie").getContext('2d');
-
 					if (chartPie) chartPie.destroy();
-
 					chartPie = new Chart(ctx, {
 						type: 'doughnut',
 						data: {
@@ -446,7 +404,7 @@
 							}]
 						},
 						options: {
-							maintainAspectRatio: false,  // Tambahkan ini
+							maintainAspectRatio: false,
 							responsive: true,
 							plugins: {
 								legend: {
@@ -458,29 +416,41 @@
 								},
 								padding: {
 									top: 10,
-									bottom: 20   // kasih jarak ke pie chart
+									bottom: 20
 								}
 							}
 						}
 					});
 				});
 		}
+	</script>
 
-		// Update pie juga saat lokasi berubah
-		document.addEventListener("DOMContentLoaded", function () {
+	<!-- Chart Location Sync -->
+	<script>
+		function updateLocationText(location) {
+			const labelMap = {
+				banda_aceh: "Banda Aceh",
+				medan: "Medan",
+				jakarta: "Jakarta",
+				pematang_siantar: "Pematang Siantar"
+			};
+			const display = `(${labelMap[location] || location})`;
+			document.getElementById("current-location").innerText = display;
+			document.getElementById("current-location-pie").innerText = display;
+		}
+		document.addEventListener("DOMContentLoaded", function() {
+			updateChart("banda_aceh");
 			updatePie("banda_aceh");
-
 			document.querySelectorAll(".dropdown-item[data-location]").forEach(item => {
-				item.addEventListener("click", function () {
-					const selectedLocation = this.getAttribute("data-location");
-					updatePie(selectedLocation);
-					updateLocationText(selectedLocation);  // tambahkan ini
+				item.addEventListener("click", () => {
+					const loc = item.getAttribute("data-location");
+					updateChart(loc);
+					updatePie(loc);
+					updateLocationText(loc);
 				});
 			});
 		});
 	</script>
-
-
 </body>
 
 </html>

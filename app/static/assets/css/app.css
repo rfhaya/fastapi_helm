@@ -2597,3 +2597,9 @@ input.search-control-2::placeholder {
 		display: none
 	}
 }
+
+@media (min-width: 992px) {
+	.toggle-icon i.bx-arrow-to-left {
+		display: none !important;
+	}
+}

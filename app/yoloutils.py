@@ -10,6 +10,9 @@ import numpy as np
 from datetime import datetime
 from threading import Thread, Lock
 from ultralytics import YOLO
+import pytz
+
+tz = pytz.timezone('Asia/Jakarta')
 
 # === Device Check ===
 device_type = "cuda" if torch.cuda.is_available() else "cpu"
@@ -101,7 +104,7 @@ def save_detection(label, conf, crop_img, bbox, camera_id, frame_count, clahe=Fa
     if camera_id not in detections_per_camera:
         detections_per_camera[camera_id] = []
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     detections_per_camera[camera_id].append({
         "frame": frame_count,

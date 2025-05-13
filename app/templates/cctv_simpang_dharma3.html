@@ -421,7 +421,15 @@
 				});
 		}
 		setInterval(loadComparison, 3000);
-		window.onload = loadComparison;
+		window.onload = () => {
+			fetch("/reset_comparison/simpang_dharma3", {
+					method: "POST"
+				})
+				.then(() => {
+					lastSeenFrames.clear(); // reset tampilan client
+					loadComparison();
+				});
+		};
 	</script>
 
 	<script>

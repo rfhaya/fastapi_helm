@@ -422,7 +422,15 @@
 				});
 		}
 		setInterval(loadComparison, 3000);
-		window.onload = loadComparison;
+		window.onload = () => {
+			fetch("/reset_comparison/gelora1", {
+					method: "POST"
+				})
+				.then(() => {
+					lastSeenFrames.clear(); // reset tampilan client
+					loadComparison();
+				});
+		};
 	</script>
 
 	<script>
